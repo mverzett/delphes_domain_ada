@@ -139,7 +139,7 @@ def run_model(outdir, Grad=1, known = 1,AdversOn=1,diffOn = 1):
 		history = model.fit(
 			X_all, 
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=100,  verbose=1, validation_split=0.2, 
+			batch_size=5000, epochs=50,  verbose=1, validation_split=0.2, 
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
@@ -156,7 +156,7 @@ def run_model(outdir, Grad=1, known = 1,AdversOn=1,diffOn = 1):
 		history = model.fit(
 			X_all,
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=100, verbose=1, validation_split=0.2,
+			batch_size=5000, epochs=50, verbose=1, validation_split=0.2,
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
@@ -173,7 +173,7 @@ def run_model(outdir, Grad=1, known = 1,AdversOn=1,diffOn = 1):
 		history = model.fit(
 			X_all,
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=100, verbose=1, validation_split=0.2,
+			batch_size=5000, epochs=50, verbose=1, validation_split=0.2,
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
@@ -191,7 +191,7 @@ def run_model(outdir, Grad=1, known = 1,AdversOn=1,diffOn = 1):
 		history = model.fit(
 			X_all, 
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=100, verbose=1, validation_split=0.2, 
+			batch_size=5000, epochs=50, verbose=1, validation_split=0.2, 
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
@@ -209,7 +209,7 @@ def run_model(outdir, Grad=1, known = 1,AdversOn=1,diffOn = 1):
 		history = model.fit(
 			X_all, 
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=100,  verbose=1, validation_split=0.2,
+			batch_size=5000, epochs=50,  verbose=1, validation_split=0.2,
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
