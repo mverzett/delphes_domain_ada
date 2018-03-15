@@ -40,7 +40,7 @@ def make_sample(input_dir):
 	#X_2Ds =  X_2Ds + noise * X_2Ds #* X_2Ds * (isMC_all<.1)
 	#X_ptRel= noise #* X_3Ds * (isMC_all<.1)
 	#X_ptPro= noise #* X_3Ds * (isMC_all<.1)
-	return np.concatenate([X_ptRel,X_2Ds,X_3Ds,X_ptPro,SV], axis=1), isB_all , isMC_all,
+	return np.concatenate([X_ptRel,X_2Ds,X_3Ds,X_ptPro,np.random.rand(X_all.shape[0],1)], axis=1), isB_all , isMC_all,
 #return make_sample_old()
 
 
