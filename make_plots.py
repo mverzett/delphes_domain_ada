@@ -4,18 +4,33 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
+from argparse import ArgumentParser
+import keras
+from keras import backend as K
+import sys
+import tensorflow as tf
+import os
+from pdb import set_trace
+from sklearn.model_selection import train_test_split
+
+parser = ArgumentParser()
+parser.add_argument('inputdir')
+parser.add_argument("-p",  dest='postfix', default='', help="plot postfix")
+args = parser.parse_args()
+
+
 #
 # Losses
 #
-da_history = pd.DataFrame(np.load('../domada_50_epochs_newsample/domain_adaptation_two_samples_w50_l.04/history.npy'))
 #pd.DataFrame(np.load(  '../domada_50_epochs_newsample/domain_adaptation_two_samples/history.npy'))
-data_history = pd.DataFrame(np.load('../domada_50_epochs_newsample/data_training/history.npy'))
-mc_history = pd.DataFrame(np.load(  '../domada_50_epochs_newsample/MC_training/history.npy'))
+da_history   = pd.DataFrame(np.load('%s/domain_adaptation_two_samples_w50_l.04/history.npy' % args.inputdir))
+data_history = pd.DataFrame(np.load('%s/data_training/history.npy' % args.inputdir))
+mc_history   = pd.DataFrame(np.load('%s/MC_training/history.npy' % args.inputdir))
 
 
 fig = plt.figure()
 nepochs=da_history['val_data_loss_mean'].shape[0]
-plt.plot(da_history['val_data_loss_mean'],label='data DA 0.25', c='blue')
+plt.plot(da_history['val_data_loss_mean'],label='data DA w 50 L .04', c='blue')
 plt.fill_between(
 	range(nepochs), 
 	da_history['val_data_loss_mean']-da_history['val_data_loss_std'], 
@@ -23,7 +38,7 @@ plt.fill_between(
 	color='blue',
 	alpha=0.3
 	)
-plt.plot(da_history['val_mc_loss_mean'],label='mc DA 0.25', c='green')
+plt.plot(da_history['val_mc_loss_mean'],label='mc DA w 50 L .04', c='green')
 plt.fill_between(
 	range(nepochs), 
 	da_history['val_mc_loss_mean']-da_history['val_mc_loss_std'], 
@@ -57,8 +72,8 @@ plt.plot(data_history['val_mc_loss_mean'],label='mc data', c='brown')
 plt.ylabel('loss')
 plt.xlabel('epochs')
 plt.legend(ncol=2, loc='best')
-fig.savefig('losses.png')
-fig.savefig('losses.pdf')
+fig.savefig('%s/losses%s.png' % (args.inputdir, args.postfix))
+fig.savefig('%s/losses%s.pdf' % (args.inputdir, args.postfix))
 
 #
 # ROCs
@@ -67,10 +82,10 @@ from sklearn.metrics import roc_curve, roc_auc_score
 from scipy.interpolate import InterpolatedUnivariateSpline
 from pdb import set_trace
 
-da_predictions = pd.DataFrame(np.load('../domada_50_epochs_newsample/domain_adaptation_two_samples_w50_l.04/predictions.npy'))
 ## pd.DataFrame(np.load(  '../domada_50_epochs_newsample/domain_adaptation_two_samples/predictions.npy'))
-data_predictions = pd.DataFrame(np.load('../domada_50_epochs_newsample/data_training/predictions.npy'))
-mc_predictions = pd.DataFrame(np.load(  '../domada_50_epochs_newsample/MC_training/predictions.npy'))
+da_predictions   = pd.DataFrame(np.load('%s/domain_adaptation_two_samples_w50_l.04/predictions.npy' % args.inputdir))
+data_predictions = pd.DataFrame(np.load('%s/data_training/predictions.npy' % args.inputdir))
+mc_predictions   = pd.DataFrame(np.load('%s/MC_training/predictions.npy' % args.inputdir))
 
 def draw_roc(df, label, color, draw_unc=False, ls='-', draw_auc=True):
 	newx = np.logspace(-4, 0, 100)#arange(0,1,0.01)
@@ -102,14 +117,14 @@ def draw_roc(df, label, color, draw_unc=False, ls='-', draw_auc=True):
 plt.clf()
 draw_roc(
 	da_predictions[da_predictions.isMC == 0],
-	'data DA 0.25',
+	'data DA w 50 L .04',
 	'blue',
 	draw_unc = True,
 	draw_auc=True,
 	)
 draw_roc(
 	da_predictions[da_predictions.isMC == 1],
-	'mc DA 0.25',
+	'mc DA w 50 L .04',
 	'green',
 	draw_unc = True,
 	draw_auc=True,
@@ -155,11 +170,34 @@ plt.grid(True)
 plt.ylabel('true positive rate')
 plt.xlabel('false positive rate')
 plt.legend(loc='best')
-fig.savefig('rocs.png')
-fig.savefig('rocs.pdf')
+fig.savefig('%s/rocs%s.png' % (args.inputdir, args.postfix))
+fig.savefig('%s/rocs%s.pdf' % (args.inputdir, args.postfix))
 
 plt.xlim(10**-4, 1)
 plt.ylim(0., 1)
 plt.gca().set_xscale('log')
-fig.savefig('rocs_log.png')
-fig.savefig('rocs_log.pdf')
+fig.savefig('%s/rocs_log%s.png' % (args.inputdir, args.postfix))
+fig.savefig('%s/rocs_log%s.pdf' % (args.inputdir, args.postfix))
+
+
+def plot_discriminator(df, name):
+	plt.clf()
+	plt.hist(
+		[df[df.isB == 1].prediction_mean, df[df.isB == 0].prediction_mean],
+		bins = 50, range=(0, 1.), histtype='bar', stacked=True,
+		color=['green', 'blue'], label=['B jets', 'light jets']
+		)
+	plt.ylabel('occurrences')
+	plt.xlabel('NN output (averaged)')
+	plt.legend(loc='best')
+	fig.savefig('%s/%s%s.png' % (args.inputdir, name, args.postfix))
+	fig.savefig('%s/%s%s.pdf' % (args.inputdir, name, args.postfix))
+
+plot_discriminator(da_predictions[da_predictions.isMC == 1], 'nn_out_da_mc')
+plot_discriminator(da_predictions[da_predictions.isMC == 0], 'nn_out_da_data')
+
+plot_discriminator(data_predictions[data_predictions.isMC == 1], 'nn_out_dataTraining_mc')
+plot_discriminator(data_predictions[data_predictions.isMC == 0], 'nn_out_dataTraining_data')
+
+plot_discriminator(mc_predictions[mc_predictions.isMC == 1], 'nn_out_mcTraining_mc')
+plot_discriminator(mc_predictions[mc_predictions.isMC == 0], 'nn_out_mcTraining_data')
