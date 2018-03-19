@@ -22,7 +22,13 @@ parser.add_argument(
 		'domain_adaptation_two_samples_w05_l1',
 	]
 )
+parser.add_argument("-i",  help="input directory", default='/data/ml/mverzett/pheno_domAda/smearing_x2/', dest='indir')
+parser.add_argument("--addsv", action='store_true')
 parser.add_argument("--gpu",  help="select specific GPU",   type=int, metavar="OPT", default=-1)
+parser.add_argument("--nopred", help="do not compute and store predictions", action='store_true')
+parser.add_argument("--lr", help="learning rate", type=float, default=0.001)
+parser.add_argument("--weight", help="domain adaptation weight", type=float, default=50)
+parser.add_argument("--lmb", help="domain adaptation lambda", type=float, default=0.04)
 parser.add_argument("--gpufraction",  help="select memory fraction for GPU",   type=float, metavar="OPT", default=-1)
 args = parser.parse_args()
 
@@ -34,6 +40,9 @@ if args.method.startswith('domain_adaptation_two_samples_'):
 	loss_weigth = float(winfo[1:])
 	lambda_reversal = float(linfo[1:])
 	args.method = 'domain_adaptation_two_samples'
+else:
+	loss_weigth = args.weight
+	lambda_reversal = args.lmb
 
 if args.gpu<0:
 	import imp
@@ -64,6 +73,7 @@ from keras.layers import Dense, Concatenate ,Dropout
 from keras.layers import Input
 from keras.models import Model
 import pandas as pd
+from keras.optimizers import Adam
 
 def schedule(x):
 	lr=0.001
@@ -72,7 +82,7 @@ def schedule(x):
 	
 	return lr
 
-learning_rate = keras.callbacks.LearningRateScheduler(schedule)
+#learning_rate = keras.callbacks.LearningRateScheduler(schedule)
 
 def save(df, fname):
 	dname = os.path.dirname(fname)
@@ -120,105 +130,104 @@ def run_model(outdir, Grad=1, known = 1,AdversOn=1,diffOn = 1):
 	Inputs = Input((21,))
 	global_loss_list={}
 	global_loss_list['GradientReversal']=GradientReversal()
-	X_traintest, isB_traintest , isMC_traintest = make_sample('/eos/cms/store/user/amartell/Pheno/converted/numpy_allx5')
+	X_traintest, isB_traintest , isMC_traintest = make_sample(args.indir, args.addsv)
 	X_all, X_test, isB_all, isB_test, isMC_all, isMC_test = train_test_split(X_traintest, isB_traintest , isMC_traintest, test_size=0.1, random_state=42)
 	advers_weight = 25.
 	if AdversOn==0:
 		advers_weight = 0.
 	
 	model = modelIverseGrad(Inputs)
-	
 	# gradiant loss
 	if(Grad == 'domain_adaptation_two_samples'):
 		model = modelIverseGrad(Inputs,rev_grad=lambda_reversal)
 		model.compile(
 			loss = ['binary_crossentropy']*4,
-			optimizer='adam', 
+			optimizer=Adam(lr=args.lr), 
 			loss_weights=[1., 0., loss_weigth, loss_weigth]
 		)
 		history = model.fit(
 			X_all, 
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=50,  verbose=1, validation_split=0.2, 
+			batch_size=5000, epochs=75,  verbose=1, validation_split=0.2, 
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
 				1-isB_all.ravel()*0.75, 
-				1+isB_all.ravel()*0.75],
-			callbacks = [learning_rate]
+				1+isB_all.ravel()*0.75]
 		)
 	elif(Grad == 'MC_training'):
 		model.compile(
 			loss = ['binary_crossentropy']*4,
-			optimizer='adam', 
+			optimizer=Adam(lr=args.lr), 
 			loss_weights=[1.,0.,0.,0.]
 		)
 		history = model.fit(
 			X_all,
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=50, verbose=1, validation_split=0.2,
+			batch_size=5000, epochs=75, verbose=1, validation_split=0.2,
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
 				1+0.5*isB_all.ravel(), 
 				1-0.5*isB_all.ravel()],
-			callbacks = [learning_rate]
 		)
 	elif(Grad == 'data_training'):
 		model.compile(
 			loss=['binary_crossentropy']*4,
-			optimizer='adam', 
+			optimizer=Adam(lr=args.lr), 
 			loss_weights=[0.,1.,0.,0.]
 		)
 		history = model.fit(
 			X_all,
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=50, verbose=1, validation_split=0.2,
+			batch_size=5000, epochs=75, verbose=1, validation_split=0.2,
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
 				1+0.5*isB_all.ravel(), 
 				1-0.5*isB_all.ravel()],
-			callbacks = [learning_rate]
 		)
 	elif(Grad == 'domain_adaptation_one_sample'):
 		model = modelIverseGrad(Inputs,rev_grad=.25)
 		model.compile(
 			loss = ['binary_crossentropy']*4,
-			optimizer='adam', 
+			optimizer=Adam(lr=args.lr), 
 			loss_weights=[1.,0.,50.,50.]
 		)
 		history = model.fit(
 			X_all, 
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=50, verbose=1, validation_split=0.2, 
+			batch_size=5000, epochs=75, verbose=1, validation_split=0.2, 
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
 				np.ones(isB_all.ravel().shape[0]),
 				np.ones(isB_all.ravel().shape[0])],				
-			callbacks = [learning_rate]
 		)
 	elif(Grad == 'domain_adaptation_one_sample_lambdap5'):
 		model = modelIverseGrad(Inputs,rev_grad=.5)
 		model.compile(
 			loss = ['binary_crossentropy']*4,
-			optimizer = 'adam', 
+			optimizer = Adam(lr=args.lr), 
 			loss_weights = [1.,0.,50.,50.]
 		)
 		history = model.fit(
 			X_all, 
 			[isB_all, isB_all, isMC_all, isMC_all], 
-			batch_size=5000, epochs=50,  verbose=1, validation_split=0.2,
+			batch_size=5000, epochs=75,  verbose=1, validation_split=0.2,
 			sample_weight = [
 				isMC_all.ravel(),
 				1-isMC_all.ravel(), 
 				np.ones(isB_all.ravel().shape[0]),
 				np.ones(isB_all.ravel().shape[0])],				
-			callbacks = [learning_rate]
 		)
 	else:
 		raise ValueError('%s is an unknown run option' % Grad)
+
+	history = pd.DataFrame(history.history)
+	save(history, '%s/history.npy' %outdir)
+	if args.nopred:
+		return history
 
 	predictions = model.predict(X_test)
 	preds = pd.DataFrame()
@@ -227,8 +236,6 @@ def run_model(outdir, Grad=1, known = 1,AdversOn=1,diffOn = 1):
 	preds['isMC'] = isMC_test
 	save(preds, '%s/predictions.npy' %outdir)
 	
-	history = pd.DataFrame(history.history)
-	save(history, '%s/history.npy' %outdir)
 	return history
 
 #print history.history.keys()

@@ -2,7 +2,7 @@ import numpy as np
 import sys, os
 from glob import glob
 
-def make_sample(input_dir):
+def make_sample(input_dir, add_svs):
 	x_file = glob('%s/*features_0.npy' % input_dir)[0]
 	y_file = glob('%s/*truth_1.npy' % input_dir)[0]
 	X_all = np.load(x_file)
@@ -32,7 +32,7 @@ def make_sample(input_dir):
 	
 	poisson_b = (np.random.rand(X_all.shape[0],1) > 0.15)*isB_all
 	poisson_qcd = (np.random.rand(X_all.shape[0],1) > 0.6)*(1-isB_all)
-	SV = poisson_qcd+poisson_b
+	SV = poisson_qcd+poisson_b if add_svs else np.random.rand(X_all.shape[0],1)
 	
 	#X_2Ds_0 = X_2Ds_0 + noise*(isMC_all<.1)
 	#X_3Ds_0 = X_3Ds_0 + noise2*(isMC_all<.1)
