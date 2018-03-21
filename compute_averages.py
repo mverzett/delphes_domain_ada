@@ -29,6 +29,9 @@ for column in columns:
 save(out, '%s/history.npy' % args.inputdir)
 
 predictions = glob('%s/*/predictions.npy' % args.inputdir)
+if not predictions:
+	print 'predictions not found, skipping'
+	exit(0)
 predictions = [pd.DataFrame(np.load(i)) for i in predictions]
 
 #check that MC thruts are the same

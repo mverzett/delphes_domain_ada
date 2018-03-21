@@ -36,7 +36,7 @@ plt.fill_between(
 	da_history['val_data_loss_mean']-da_history['val_data_loss_std'], 
 	da_history['val_data_loss_mean']+da_history['val_data_loss_std'], 
 	color='blue',
-	alpha=0.3
+	alpha=0.15
 	)
 plt.plot(da_history['val_mc_loss_mean'],label='mc DA w 50 L .04', c='green')
 plt.fill_between(
@@ -44,7 +44,26 @@ plt.fill_between(
 	da_history['val_mc_loss_mean']-da_history['val_mc_loss_std'], 
 	da_history['val_mc_loss_mean']+da_history['val_mc_loss_std'], 
 	color='green',
-	alpha=0.3
+	alpha=0.15
+	)
+
+
+test = pd.DataFrame(np.load('../smearing_5x_75epochs/domain_adaptation_lr0.000500_w300.000000_l0.040000/history.npy'))
+plt.plot(test['val_data_loss_mean'],label='data DA scan', c='blue')
+plt.fill_between(
+	test.index, 
+	test['val_data_loss_mean']-test['val_data_loss_std'], 
+	test['val_data_loss_mean']+test['val_data_loss_std'], 
+	facecolor='blue',
+	alpha=0.15, hatch='//', edgecolor='blue',
+	)
+plt.plot(test['val_mc_loss_mean'],label='mc DA scan', c='green')
+plt.fill_between(
+	test.index, 
+	test['val_mc_loss_mean']-test['val_mc_loss_std'], 
+	test['val_mc_loss_mean']+test['val_mc_loss_std'], 
+	facecolor='green', hatch='//', edgecolor='green',
+	alpha=0.15,
 	)
 
 
