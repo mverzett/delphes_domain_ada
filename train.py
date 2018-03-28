@@ -172,7 +172,7 @@ inweights[:,1] += isMC_all.ravel()*(1 - isB_all.ravel())
 # define two data-MC samples
 data_mc_sample_1 = (np.random.rand(isB_all.shape[0]) > 0.5).astype(float)
 data_mc_sample_2 = 1 - data_mc_sample_1
-fraction_bias = 0.3 #30% more Bs in MC
+fraction_bias = 0. #0.3 #30% more Bs in MC
 domada_weights = np.ones(isB_all.shape[0]) + (isB_all*isMC_all*fraction_bias).ravel() 
 mc_only_weights = isMC_all.ravel()# + (isB_all*isMC_all*(1+fraction_bias)).ravel()
 
@@ -246,7 +246,7 @@ print '\n\ntraining b-tag classifier, weights:', [i.weights[0].eval(sess).ravel(
 history = model.fit(
 	[X_all, inweights], 
 	[isB_all, isB_all, isMC_all, isMC_all], 
-	batch_size=10000, epochs=class_epochs,  verbose=1, validation_split=0.2,
+	batch_size=10000, epochs=class_epochs,  verbose=0, validation_split=0.2,
 	sample_weight = [
 		mc_only_weights,
 		1-isMC_all.ravel(), 
@@ -274,7 +274,7 @@ print '\n\ntraining data/MC classifier, weights:', [i.weights[0].eval(sess).rave
 history = model.fit(
 	[X_all, inweights], 
 	[isB_all, isB_all, isMC_all, isMC_all], 
-	batch_size=10000, epochs=domdiscr_epochs,  verbose=1, validation_split=0.2,
+	batch_size=10000, epochs=domdiscr_epochs,  verbose=0, validation_split=0.2,
 	sample_weight = [
 		mc_only_weights,
 		1-isMC_all.ravel(), 
@@ -294,11 +294,11 @@ print '\n\noutput weights:', [i.weights[0].eval(sess).ravel() for i in weight_la
 # release weights
 #
 set_trainable(model, ['weight_', 'weight1_'], True)
-set_trainable(model, ['common_', 'btag_', 'Ad_', 'Ad1_'], False)
+set_trainable(model, ['common_', 'btag_', 'Ad_', 'Ad1_'], True)
 model.compile(
 	loss = ['binary_crossentropy']*2+[binary_crossentropy_labelweights_Delphes]*2,
 	optimizer=Adam(lr=0.001),
-	loss_weights=[0., 0., 50., 50.],
+	loss_weights=[1., 1., 10., 10.],
 	weighted_metrics = ['accuracy'],
 	)
 
@@ -306,7 +306,7 @@ print '\n\ntraining everything, weights:', [i.weights[0].eval(sess).ravel() for 
 history = model.fit(
 	[X_all, inweights], 
 	[isB_all, isB_all, isMC_all, isMC_all], 
-	batch_size=10000, epochs=da_epochs,  verbose=1, validation_split=0.2,
+	batch_size=10000, epochs=da_epochs,  verbose=0, validation_split=0.2,
 	sample_weight = [
 		mc_only_weights,
 		1-isMC_all.ravel(), 
@@ -332,7 +332,7 @@ print '\n\noutput weights:', [i.weights[0].eval(sess).ravel() for i in weight_la
 ## history = model.fit(
 ## 	[X_all, inweights], 
 ## 	[isB_all, isB_all, isMC_all, isMC_all], 
-## 	batch_size=10000, epochs=da_epochs,  verbose=1, validation_split=0.2,
+## 	batch_size=10000, epochs=da_epochs,  verbose=0, validation_split=0.2,
 ## 	sample_weight = [
 ## 		mc_only_weights,
 ## 		1-isMC_all.ravel(), 
