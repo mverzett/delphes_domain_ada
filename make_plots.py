@@ -48,22 +48,20 @@ plt.fill_between(
 	)
 
 
-test = pd.DataFrame(np.load('../smearing_5x_75epochs/domain_adaptation_lr0.000500_w300.000000_l0.040000/history.npy'))
-plt.plot(test['val_data_loss_mean'],label='data DA scan', c='blue')
+test = pd.DataFrame(np.load('%s/domain_adaptation_two_samples_lr0.0005_w300_l0.04/history.npy' % args.inputdir))
+plt.plot(test['val_data_loss_mean'],label='data DA scan', c='blue', ls='--')
 plt.fill_between(
 	test.index, 
 	test['val_data_loss_mean']-test['val_data_loss_std'], 
 	test['val_data_loss_mean']+test['val_data_loss_std'], 
-	facecolor='blue',
-	alpha=0.15, hatch='//', edgecolor='blue',
+	facecolor='blue', alpha=0.15,
 	)
-plt.plot(test['val_mc_loss_mean'],label='mc DA scan', c='green')
+plt.plot(test['val_mc_loss_mean'],label='mc DA scan', c='green', ls='--')
 plt.fill_between(
 	test.index, 
 	test['val_mc_loss_mean']-test['val_mc_loss_std'], 
 	test['val_mc_loss_mean']+test['val_mc_loss_std'], 
-	facecolor='green', hatch='//', edgecolor='green',
-	alpha=0.15,
+	facecolor='green', alpha=0.15,
 	)
 
 

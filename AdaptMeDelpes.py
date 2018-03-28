@@ -20,6 +20,7 @@ parser.add_argument(
 		'domain_adaptation_two_samples_w50_l.04',
 		'domain_adaptation_two_samples_w25_l.5',
 		'domain_adaptation_two_samples_w05_l1',
+		'domain_adaptation_two_samples_lr0.0005_w300_l0.04',
 	]
 )
 parser.add_argument("-i",  help="input directory", default='/data/ml/mverzett/pheno_domAda/smearing_x2/', dest='indir')
@@ -36,7 +37,13 @@ loss_weigth = 50
 lambda_reversal = .1
 if args.method.startswith('domain_adaptation_two_samples_'):
 	cfg = args.method[len('domain_adaptation_two_samples_'):]
-	winfo, linfo = tuple(cfg.split('_'))
+	if len(cfg.split('_')) == 2:
+		winfo, linfo = tuple(cfg.split('_'))
+	elif len(cfg.split('_')) == 3:
+		lrinfo, winfo, linfo = tuple(cfg.split('_'))
+		args.lr = float(lrinfo[2:])
+	else:
+		raise ValueError('to be implemented')
 	loss_weigth = float(winfo[1:])
 	lambda_reversal = float(linfo[1:])
 	args.method = 'domain_adaptation_two_samples'
