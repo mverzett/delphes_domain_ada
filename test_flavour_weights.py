@@ -23,7 +23,7 @@ print cl
 # create fake dataset
 #
 nsamples = 40000
-fb_mc = 0.2
+fb_mc = 0.7
 fb_da = 0.5
 ismc = (np.random.rand(nsamples) > 0.5)
 isb = np.zeros(nsamples)
@@ -59,7 +59,7 @@ from keras.layers import Dense, Dropout, Concatenate, LocallyConnected1D, Reshap
 from keras.models import Model
 from keras.layers import Input
 from Layers import GradientReversal
-from keras.optimizers import Adam
+from keras.optimizers import Adam, SGD
 
 #
 # Model 0, really stupid
@@ -94,8 +94,14 @@ if predictions is not None: print predictions.mean(axis=1), predictions.std(axis
 # Model 1, with weights
 #
 predictions = None
+final_w = []
+
+def boundary_regularizer(weight_matrix):
+	return 10*K.sum(K.abs(K.clip(weight_matrix+1+K.epsilon(), -1/K.epsilon(), 0)))
+
 from DeepJetCore.modeltools import set_trainable
-for _ in range(1):
+for itrial in range(10):
+	print 'Trial #',itrial
 	Inputs = [Input((1,)), Input((1,))]
 	#X = Dense(2, activation='relu', name='common_dense_0') (Inputs[0])
 	#X = Dense(2, activation='sigmoid', name = 'btag_mc')(X)
@@ -109,42 +115,46 @@ for _ in range(1):
 		1,1, 
 		activation='linear',use_bias=False, 
 		kernel_initializer='zeros',
-		name="weight_layer") (Weight)    
+		name="weight_layer",
+		kernel_regularizer=boundary_regularizer,
+		) (Weight)    
 	Weight= Flatten()(Weight)
 	Weight = GradientReversal(name='weight_reversal', hp_lambda=1.)(Weight)
 	out = Concatenate(name='out')([X,Weight]) 
 	
 	model = Model(inputs=Inputs, outputs=out)
 	set_trainable(model, ['weight_'], False)
-	
 	model.compile(
 		loss = binary_crossentropy_labelweights_Delphes,
-		optimizer=Adam(lr=0.01),
+		#optimizer=SGD(lr=0.01),
+		optimizer = Adam(lr=0.01),
 		)
 	
 	model.fit(
-		[x, weights], y, batch_size=100, epochs=1, verbose=1, validation_split=0.2,
+		[x, weights], y, batch_size=100, epochs=2, verbose=0, validation_split=0.2,
 		)
 	
 	weight_layer = [i for i in model.layers if i.name == 'weight_layer'][0]
-	set_trainable(model, ['weight_'], True)	
-	model.compile(
-		loss = binary_crossentropy_labelweights_Delphes,
-		optimizer=Adam(lr=0.01),
-		)	
-	for iepoch in range(4):
-		##set_trainable(model, ['weight_'], False)	
-		##model.compile(
-		##	loss = binary_crossentropy_labelweights_Delphes,
-		##	optimizer=Adam(lr=0.01),
-		##	)
-		##model.fit(
-		##	[x, weights], y, batch_size=100, epochs=1, verbose=1, validation_split=0.2,
-		##	)
-		model.fit(
-			[x, weights], y, batch_size=500, epochs=2, verbose=1, validation_split=0.2,
+	for iepoch in range(30):
+		set_trainable(model, ['weight_'], False)	
+		model.compile(
+			loss = binary_crossentropy_labelweights_Delphes,
+			#optimizer=SGD(lr=0.01),
+			optimizer = Adam(lr=0.01),
 			)
-		print '\nEpoch:', iepoch, 'weight:', weight_layer.weights[0].eval(session=s)
+		model.fit(
+			[x, weights], y, batch_size=100, epochs=1, verbose=0, validation_split=0.2,
+			)
+		set_trainable(model, ['weight_'], True)	
+		model.compile(
+			loss = binary_crossentropy_labelweights_Delphes,
+			optimizer=SGD(lr=0.09),
+			#optimizer = Adam(lr=0.01),
+			)	
+		model.fit(
+			[x, weights], y, batch_size=500, epochs=1, verbose=0, validation_split=0.2,
+			)
+		print 'Epoch:', iepoch, 'weight:', weight_layer.weights[0].eval(session=s)
 	##s.run(
 	##	weight_layer.weights[0].assign(
 	##		np.array([[[exp_f]]])
@@ -153,9 +163,12 @@ for _ in range(1):
 	preds = model.predict(
 		[np.array([[1.], [0.]]), np.array([[1.], [0.]])])
 	preds = preds.reshape((preds.ravel().shape[0], -1))
+	print 'Trial:', itrial, 'weight:', weight_layer.weights[0].eval(session=s)
+	final_w.append(weight_layer.weights[0].eval(session=s).ravel())
 	if predictions is None:
 		predictions = preds
 	else:
 		predictions = np.hstack((predictions, preds))
 
 print predictions.mean(axis=1), predictions.std(axis=1)
+print weights
